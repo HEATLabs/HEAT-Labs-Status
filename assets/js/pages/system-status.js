@@ -189,7 +189,7 @@ function updateIncidents(incidents) {
             updatesHtml += '<h4 class="updates-title">Updates Timeline</h4>';
 
             sortedUpdates.forEach(update => {
-                const updateStatus = update.status === 'ended' ? 'Resolved' :
+                const updateStatus = update.status === 'ended' ? 'Ended' :
                     update.status === 'started' ? 'Started' :
                     formatStatusText(update.status);
 

@@ -152,6 +152,14 @@
 	background-color: #3b82f6;
 }
 
+.status-dot.started {
+	background-color: #3b82f6;
+}
+
+.status-dot.ended {
+	background-color: #10b981;
+}
+
 .operational {
 	color: #10b981;
 	background-color: rgba(16, 185, 129, 0.1);
@@ -244,8 +252,8 @@
 }
 
 .incident-status.started {
-	background-color: rgba(59, 130, 246, 0.1);
-	color: #3b82f6;
+	background-color: rgba(249, 115, 22, 0.1);
+	color: #f97316;
 }
 
 .incident-status.ended {
@@ -344,6 +352,16 @@
 	padding: 0.25rem 0.5rem;
 	border-radius: 0.25rem;
 	margin-bottom: 0.5rem;
+}
+
+.update-status.started {
+	background-color: rgba(245, 158, 11, 0.1);
+	color: #f59e0b;
+}
+
+.update-status.ended {
+	background-color: rgba(16, 185, 129, 0.1);
+	color: #10b981;
 }
 
 .update-content {
