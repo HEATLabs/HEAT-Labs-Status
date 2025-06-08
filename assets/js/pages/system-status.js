@@ -171,19 +171,34 @@ function updateIncidents(incidents) {
         const incidentItem = document.createElement('div');
         incidentItem.className = `incident-item ${incident.severity}`;
 
-        const statusText = incident.status === 'ended' ? 'Resolved' : formatStatusText(incident.status);
+        const statusText = incident.status === 'ended' ? 'Resolved' :
+            incident.status === 'started' ? 'Started' :
+            formatStatusText(incident.status);
+
         const endTimeText = incident.end_time ?
             `Ended: ${new Date(incident.end_time).toLocaleString()}` :
             'Ongoing';
 
         let updatesHtml = '';
         if (incident.updates && incident.updates.length > 0) {
+            // Sort updates by time (newest first)
+            const sortedUpdates = [...incident.updates].sort((a, b) =>
+                new Date(b.time) - new Date(a.time));
+
             updatesHtml = '<div class="incident-updates">';
-            incident.updates.forEach(update => {
+            updatesHtml += '<h4 class="updates-title">Updates Timeline</h4>';
+
+            sortedUpdates.forEach(update => {
+                const updateStatus = update.status === 'ended' ? 'Resolved' :
+                    update.status === 'started' ? 'Started' :
+                    formatStatusText(update.status);
+
                 updatesHtml += `
                     <div class="incident-update">
                         <div class="update-header">
-                            <span class="update-status ${formatStatusClass(update.status)}">${formatStatusText(update.status)}</span>
+                            <span class="update-status ${formatStatusClass(update.status)}">
+                                ${updateStatus}
+                            </span>
                             <span class="update-time">${new Date(update.time).toLocaleString()}</span>
                         </div>
                         <p class="update-content">${update.message}</p>
@@ -198,7 +213,9 @@ function updateIncidents(incidents) {
                 <div>
                     <h3 class="incident-title">${incident.title}</h3>
                     <div class="incident-meta">
-                        <span class="incident-status ${formatStatusClass(incident.status)}">${statusText}</span>
+                        <span class="incident-status ${formatStatusClass(incident.status)}">
+                            ${statusText}
+                        </span>
                         <span class="incident-date">Started: ${new Date(incident.start_time).toLocaleString()}</span>
                         <span class="incident-date">${endTimeText}</span>
                     </div>
@@ -226,6 +243,8 @@ function formatStatusText(status) {
             return 'Major Outage';
         case 'maintenance':
             return 'Maintenance';
+        case 'started':
+            return 'Started';
         case 'ended':
             return 'Resolved';
         default:
