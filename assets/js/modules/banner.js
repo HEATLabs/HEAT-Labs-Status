@@ -1,11 +1,11 @@
-/* PCWStats Banner System */
+/* HEATLabs Banner System */
 document.addEventListener('DOMContentLoaded', () => {
     // Debug mode - set to true to see console logs
     const DEBUG = false;
 
     // Banner configuration
-    const BANNER_CONFIG_URL = 'https://cdn.jsdelivr.net/gh/PCWStats/Website-Configs@main/banner.json';
-    const BANNER_STORAGE_KEY = 'pcwstats_banner_dismissed';
+    const BANNER_CONFIG_URL = 'https://cdn.jsdelivr.net/gh/HEATLabs/Website-Configs@main/banner.json';
+    const BANNER_STORAGE_KEY = 'heatlabs_banner_dismissed';
     const BANNER_EXPIRY_DAYS = 7;
 
     function debugLog(...args) {

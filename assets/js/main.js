@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeInteractiveElements();
 
     // Fetch changelog data from GitHub
-    fetch('https://raw.githubusercontent.com/PCWStats/Website-Configs/refs/heads/main/changelog.json')
+    fetch('https://raw.githubusercontent.com/HEATLabs/Website-Configs/refs/heads/main/changelog.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -131,7 +131,7 @@ function addVersionToFooter(update, isFallback = false) {
     // Create changelog link
     const changelogLink = document.createElement('a');
     changelogLink.className = 'version-info-item version-info-link';
-    changelogLink.href = 'https://pcwstats.github.io/Website-Changelog';
+    changelogLink.href = 'https://HEATLabs.github.io/Website-Changelog';
     changelogLink.innerHTML = `
         <span>View Changelog</span>
         <i class="fas fa-external-link-alt"></i>
