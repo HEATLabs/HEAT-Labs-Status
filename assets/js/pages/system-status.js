@@ -8,7 +8,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set up auto-refresh every 5 minutes
     setInterval(fetchStatusData, 5 * 60 * 1000);
+
+    // Initialize server monitoring
+    initializeServerMonitoring();
 });
+
+// Server monitoring configuration
+const SERVER_API_KEY = "ur2540855-8a25d33f16ec589715c9ab65";
+const SERVER_API_URL = "https://api.uptimerobot.com/v2/getMonitors";
+const SERVER_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Status mapping for servers
+const SERVER_STATUS_MAP = {
+    0: {
+        text: "Paused",
+        class: "status-paused"
+    },
+    1: {
+        text: "Not checked yet",
+        class: "status-unknown"
+    },
+    2: {
+        text: "Up",
+        class: "status-up"
+    },
+    8: {
+        text: "Seems down",
+        class: "status-down"
+    },
+    9: {
+        text: "Down",
+        class: "status-down"
+    }
+};
+
+let serverRefreshTimer = null;
+let serverChartInstances = {};
 
 function fetchStatusData() {
     fetch('https://raw.githubusercontent.com/HEATLabs/Website-Configs/refs/heads/main/system-status.json')
@@ -144,7 +179,6 @@ function updateSystemsStatus(systems) {
             </div>
             <div class="status-card-body">
                 <p class="status-message">${system.message || 'No issues reported'}</p>
-                <span class="status-update-time">Last checked: ${new Date(system.last_updated).toLocaleString()}</span>
             </div>
         `;
 
@@ -264,4 +298,461 @@ function showErrorState() {
             </button>
         </div>
     `;
+}
+
+// Server Monitoring Functions
+function initializeServerMonitoring() {
+    // Load data initially
+    loadServerData();
+
+    // Set up refresh interval (auto-refresh is always enabled now)
+    serverRefreshTimer = setInterval(loadServerData, SERVER_REFRESH_INTERVAL);
+}
+
+// Fetch monitors from Uptime Robot API using form data
+async function fetchServerMonitors() {
+    try {
+        // Create form data instead of using headers
+        const formData = new URLSearchParams();
+        formData.append('api_key', SERVER_API_KEY);
+        formData.append('format', 'json');
+        formData.append('logs', '1');
+        formData.append('response_times', '1');
+        formData.append('custom_uptime_ratios', '1-7-30');
+        formData.append('response_times_limit', '24'); // Get 24 hours of data for charts
+
+        const response = await fetch(SERVER_API_URL, {
+            method: 'POST',
+            body: formData
+            // Avoid CORS preflight
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.stat !== 'ok') {
+            throw new Error(`API error: ${data.error?.message || 'Unknown error'}`);
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error fetching monitors:', error);
+        throw error;
+    }
+}
+
+// Format uptime ratio with appropriate color
+function formatServerUptime(uptimeRatio) {
+    if (!uptimeRatio || uptimeRatio === "" || uptimeRatio === "0") return "N/A";
+
+    const uptimePercent = parseFloat(uptimeRatio);
+    let uptimeClass = "uptime-low";
+
+    if (uptimePercent >= 99.5) {
+        uptimeClass = "uptime-high";
+    } else if (uptimePercent >= 95.0) {
+        uptimeClass = "uptime-medium";
+    }
+
+    return `<span class="uptime-value ${uptimeClass}">${uptimePercent.toFixed(2)}%</span>`;
+}
+
+// Format response time with appropriate color
+function formatServerResponseTime(responseTime) {
+    if (!responseTime) {
+        return `<span class="response-value response-na">N/A</span>`;
+    }
+
+    let responseClass = "response-slow";
+
+    if (responseTime < 100) {
+        responseClass = "response-fast";
+    } else if (responseTime < 500) {
+        responseClass = "response-medium";
+    }
+
+    return `<span class="response-value ${responseClass}">${responseTime}ms</span>`;
+}
+
+// Format last check timestamp using the most recent log entry
+function formatServerLastCheck(monitor) {
+    // Check if we have logs and get the most recent one
+    if (monitor.logs && monitor.logs.length > 0) {
+        // Sort logs by datetime (newest first)
+        const sortedLogs = [...monitor.logs].sort((a, b) => b.datetime - a.datetime);
+        const lastLog = sortedLogs[0];
+
+        if (lastLog && lastLog.datetime) {
+            // Convert to milliseconds
+            const timestampMs = lastLog.datetime < 10000000000 ? lastLog.datetime * 1000 : lastLog.datetime;
+            const dt = new Date(timestampMs);
+
+            // Check if date is valid
+            if (isNaN(dt.getTime())) return "Never";
+
+            return dt.toLocaleString();
+        }
+    }
+
+    // Fallback to last_heartbeat if no logs available
+    const timestamp = monitor.last_heartbeat || monitor.create_datetime;
+    if (!timestamp || timestamp === 0) return "Never";
+
+    // Convert to milliseconds
+    const timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+    const dt = new Date(timestampMs);
+
+    // Check if date is valid
+    if (isNaN(dt.getTime())) return "Never";
+
+    return dt.toLocaleString();
+}
+
+// Format monitoring since date (when the monitor was created)
+function formatServerMonitoringSince(timestamp) {
+    if (!timestamp || timestamp === 0) return "Unknown";
+
+    // Convert to milliseconds
+    const timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+    const dt = new Date(timestampMs);
+
+    // Check if date is valid
+    if (isNaN(dt.getTime())) return "Unknown";
+
+    return dt.toLocaleDateString();
+}
+
+// Get theme colors for charts
+function getServerChartColors() {
+    const isDarkTheme = document.documentElement.classList.contains('dark-theme');
+
+    return {
+        gridColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        tickColor: isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'
+    };
+}
+
+// Create chart for a monitor
+function createServerChart(monitorId, type, monitorData) {
+    const container = document.getElementById(`chart-${monitorId}`);
+    if (!container) return null;
+
+    // Clear previous content
+    container.innerHTML = '';
+
+    // Check if we have data for the selected chart type
+    const hasUptimeData = monitorData.logs && monitorData.logs.length > 0;
+    const hasResponseTimeData = monitorData.response_times && monitorData.response_times.length > 0;
+
+    // Show placeholder if no data available
+    if ((type === 'uptime' && !hasUptimeData) || (type === 'response' && !hasResponseTimeData)) {
+        container.innerHTML = `
+            <div class="chart-placeholder">
+                <div class="chart-placeholder-icon">📊</div>
+                <p class="chart-placeholder-text">${type === 'uptime' ? 'No uptime data available' : 'No response time data available'}</p>
+            </div>
+        `;
+        return null;
+    }
+
+    // Get canvas element
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+
+    // Get theme colors
+    const colors = getServerChartColors();
+
+    if (type === 'uptime') {
+        // Create uptime chart
+        const logs = monitorData.logs || [];
+        const last24hLogs = logs
+            .filter(log => {
+                const logTime = new Date(log.datetime * 1000);
+                const now = new Date();
+                return (now - logTime) <= 24 * 60 * 60 * 1000;
+            })
+            .sort((a, b) => a.datetime - b.datetime);
+
+        // Check if we have any logs after filtering
+        if (last24hLogs.length === 0) {
+            container.innerHTML = `
+                <div class="chart-placeholder">
+                    <div class="chart-placeholder-icon">📊</div>
+                    <p class="chart-placeholder-text">No uptime data available</p>
+                </div>
+            `;
+            return null;
+        }
+
+        const data = last24hLogs.map(log => log.type === 1 ? 100 : 0); // 1 = up, 2 = down
+
+        // Create chart
+        const ctx = canvas.getContext('2d');
+        serverChartInstances[monitorId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(last24hLogs.length).fill(''),
+                datasets: [{
+                    label: 'Uptime Status',
+                    data: data,
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            },
+                            color: colors.tickColor
+                        },
+                        grid: {
+                            color: colors.gridColor
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            display: false,
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y === 100 ? 'Online' : 'Offline';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        // Create response time chart
+        const responseTimes = monitorData.response_times || [];
+        const last24hResponses = responseTimes
+            .filter(rt => {
+                const responseTime = new Date(rt.datetime * 1000);
+                const now = new Date();
+                return (now - responseTime) <= 24 * 60 * 60 * 1000;
+            })
+            .sort((a, b) => a.datetime - b.datetime);
+
+        // Check if we have any response times after filtering
+        if (last24hResponses.length === 0) {
+            container.innerHTML = `
+                <div class="chart-placeholder">
+                    <div class="chart-placeholder-icon">📊</div>
+                    <p class="chart-placeholder-text">No response time data available for the last 24 hours</p>
+                </div>
+            `;
+            return null;
+        }
+
+        const data = last24hResponses.map(rt => rt.value);
+
+        // Create chart
+        const ctx = canvas.getContext('2d');
+        serverChartInstances[monitorId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(last24hResponses.length).fill(''),
+                datasets: [{
+                    label: 'Response Time (ms)',
+                    data: data,
+                    borderColor: '#2196F3',
+                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + 'ms';
+                            },
+                            color: colors.tickColor
+                        },
+                        grid: {
+                            color: colors.gridColor
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            display: false,
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    return serverChartInstances[monitorId];
+}
+
+// Set up chart toggle buttons
+function setupChartToggle(monitorId, monitorData) {
+    const uptimeBtn = document.querySelector(`button[data-chart-type="uptime"][data-monitor-id="${monitorId}"]`);
+    const responseBtn = document.querySelector(`button[data-chart-type="response"][data-monitor-id="${monitorId}"]`);
+
+    if (!uptimeBtn || !responseBtn) return;
+
+    uptimeBtn.addEventListener('click', () => {
+        uptimeBtn.classList.add('active');
+        responseBtn.classList.remove('active');
+        createServerChart(monitorId, 'uptime', monitorData);
+    });
+
+    responseBtn.addEventListener('click', () => {
+        responseBtn.classList.add('active');
+        uptimeBtn.classList.remove('active');
+        createServerChart(monitorId, 'response', monitorData);
+    });
+
+    // Initialize with response time chart
+    responseBtn.classList.add('active');
+    createServerChart(monitorId, 'response', monitorData);
+}
+
+// Load server data from Uptime Robot
+async function loadServerData() {
+    const serversGrid = document.getElementById('serversGrid');
+
+    try {
+        // Show loading state
+        serversGrid.innerHTML = `
+            <div class="server-loading-overlay">
+                <div class="server-loader"></div>
+                <p>Loading server status...</p>
+            </div>
+        `;
+
+        // Fetch data from Uptime Robot
+        const data = await fetchServerMonitors();
+
+        // Clear existing server cards
+        serversGrid.innerHTML = '';
+
+        // Check if we have monitors
+        if (!data.monitors || data.monitors.length === 0) {
+            serversGrid.innerHTML = `
+                <div class="server-error-message">
+                    <i class="fas fa-info-circle"></i>
+                    <span>No servers configured for monitoring</span>
+                </div>
+            `;
+            return;
+        }
+
+        // Create a card for each monitor
+        data.monitors.forEach((monitor, index) => {
+            const statusInfo = SERVER_STATUS_MAP[monitor.status] || SERVER_STATUS_MAP[1];
+            const uptimeRatios = monitor.custom_uptime_ratio ? monitor.custom_uptime_ratio.split('-') : [];
+
+            const serverCard = document.createElement('div');
+            serverCard.className = 'server-card';
+            serverCard.innerHTML = `
+                <div class="server-header">
+                    <h3 class="server-name">${monitor.friendly_name}</h3>
+                    <span class="server-status ${statusInfo.class}">
+                        ${statusInfo.text}
+                    </span>
+                </div>
+                <div class="server-details">
+                    <div class="server-detail">
+                        <span class="detail-label">Uptime (24h):</span>
+                        <span class="detail-value">${formatServerUptime(uptimeRatios[0])}</span>
+                    </div>
+                    <div class="server-detail">
+                        <span class="detail-label">Uptime (7d):</span>
+                        <span class="detail-value">${formatServerUptime(uptimeRatios[1])}</span>
+                    </div>
+                    <div class="server-detail">
+                        <span class="detail-label">Uptime (30d):</span>
+                        <span class="detail-value">${formatServerUptime(uptimeRatios[2])}</span>
+                    </div>
+                    <div class="server-detail">
+                        <span class="detail-label">Avg. Response:</span>
+                        <span class="detail-value">${formatServerResponseTime(monitor.average_response_time)}</span>
+                    </div>
+                    <div class="server-detail">
+                        <span class="detail-label">Last Check:</span>
+                        <span class="detail-value">${formatServerLastCheck(monitor)}</span>
+                    </div>
+                    <div class="server-detail">
+                        <span class="detail-label">Monitoring Since:</span>
+                        <span class="detail-value">${formatServerMonitoringSince(monitor.create_datetime)}</span>
+                    </div>
+                </div>
+                <div class="chart-section">
+                    <div class="chart-toggle-buttons">
+                        <button class="chart-toggle-btn" data-chart-type="response" data-monitor-id="${monitor.id}">
+                            Response Time
+                        </button>
+                        <button class="chart-toggle-btn" data-chart-type="uptime" data-monitor-id="${monitor.id}">
+                            Uptime History
+                        </button>
+                    </div>
+                    <div class="chart-container" id="chart-${monitor.id}">
+                        <div class="chart-placeholder">
+                            <div class="chart-placeholder-icon">📊</div>
+                            <p class="chart-placeholder-text">Loading chart...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            serversGrid.appendChild(serverCard);
+
+            // Set up chart toggles after DOM is updated
+            setTimeout(() => {
+                setupChartToggle(monitor.id, monitor);
+            }, 100);
+        });
+
+    } catch (error) {
+        console.error('Error loading server data:', error);
+        serversGrid.innerHTML = `
+            <div class="server-error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Failed to load server status: ${error.message}</span>
+            </div>
+        `;
+    }
 }

@@ -260,7 +260,7 @@
                 <i class="fas fa-search"></i>
               </button>
               <button id="openSettings" class="settings-button">
-                  <i class="fas fa-cog"></i>
+                <i class="fas fa-cog"></i>
               </button>
               <a href="#" class="system-status">
                 <i class="fa-solid fa-server"></i>
@@ -290,7 +290,8 @@
           <div class="status-summary-card">
             <div class="status-summary-header">
               <h2>Overall System Status</h2>
-              <div class="last-updated">Last updated: <span id="lastUpdated">Loading...</span></div>
+              <div class="last-updated">Last updated: <span id="lastUpdated">Loading...</span>
+              </div>
             </div>
             <div class="status-summary-content">
               <div class="status-summary-item all-operational">
@@ -318,6 +319,9 @@
               <i class="fas fa-spinner fa-spin"></i>
               <span>Loading system status...</span>
             </div>
+          </div>
+          <div id="serversGrid" class="servers-grid">
+              <!-- Server cards will be loaded here -->
           </div>
           <!-- Incidents Section -->
           <div class="incidents-section hidden" id="incidentsSection">
@@ -510,6 +514,7 @@
     <script src="assets/js/misc.js"></script>
     <script src="assets/js/modules/waves.js"></script>
     <script src="assets/js/modules/settings.js"></script>
+    <script src="assets/js/libraries/chart.js"></script>
     <script src="assets/js/pages/system-status.js"></script>
     <script src="assets/js/modules/image-protection.js"></script>
     <script src="assets/js/modules/sidebar.js"></script>
