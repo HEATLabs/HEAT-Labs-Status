@@ -1,4 +1,4 @@
-// Main JS for PCWStats
+// Main JS for HEAT Labs
 document.addEventListener('DOMContentLoaded', function() {
     // Navbar scroll effect
     const navbar = document.querySelector('.navbar');
