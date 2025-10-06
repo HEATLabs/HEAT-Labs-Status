@@ -2,7 +2,7 @@
 
 # HEAT Labs - Website Status
 
-<img src="https://raw.githubusercontent.com/HEATLabs/Website-Images/refs/heads/main/social-share/HEATLabs.png" alt="HEATLabs Banner"/>
+<img src="https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/social-share/HEATLabs.png" alt="HEATLabs Banner"/>
 
 > One-stop solution for comprehensive statistics and insights in World of Tanks: HEAT
 
