@@ -3,7 +3,7 @@
 	xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 	<!-- Website-Status Page -->
 	<url>
-		<loc>https://heatlabs.net/Website-Status</loc>
+		<loc>https://status.heatlabs.net</loc>
 		<lastmod>2025-08-08</lastmod>
 		<changefreq>weekly</changefreq>
 		<priority>1.0</priority>
