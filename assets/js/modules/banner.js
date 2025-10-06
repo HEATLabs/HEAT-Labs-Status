@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEBUG = false;
 
     // Banner configuration
-    const BANNER_CONFIG_URL = 'https://cdn.jsdelivr.net/gh/HEATLabs/Website-Configs@main/banner.json';
+    const BANNER_CONFIG_URL = 'https://cdn.jsdelivr.net/gh/HEATLabs/HEAT-Labs-Configs@main/banner.json';
     const BANNER_STORAGE_KEY = 'heatlabs_banner_dismissed';
     const BANNER_EXPIRY_DAYS = 7;
 

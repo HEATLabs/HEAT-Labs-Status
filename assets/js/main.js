@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeInteractiveElements();
 
     // Fetch changelog data from GitHub
-    fetch('https://raw.githubusercontent.com/HEATLabs/Website-Configs/refs/heads/main/changelog.json')
+    fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/changelog.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
