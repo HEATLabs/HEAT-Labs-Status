@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://heatlabs.net/site-data/sitemap.xml
+Sitemap: https://status.heatlabs.net/site-data/sitemap.xml
